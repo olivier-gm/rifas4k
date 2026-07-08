@@ -422,9 +422,10 @@ def registrar2():
             nombre_archivo, extension = os.path.splitext(filename)
             sufijo = generar_sufijo_aleatorio()
             filename = f"{nombre_archivo}_{sufijo}.jpg"
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            os.makedirs('static/comprobantes2', exist_ok=True)
+            filepath = os.path.join('static/comprobantes2', filename)
             success = compress_and_save(nmr_r, filepath, max_width=1200, quality=70)
-            referencia_ruta = os.path.join('/static/comprobantes', filename).replace("\\", "/") if success else None
+            referencia_ruta = os.path.join('/static/comprobantes2', filename).replace("\\", "/") if success else None
             fecha = get_enunciado2()
 
         # Recuperar los datos de la compra (los valores pasados en los campos ocultos)
@@ -497,17 +498,18 @@ def reiniciar2():
 
     cursor.executemany("""
     INSERT OR IGNORE INTO tickets_disponibles (carton_disponible) VALUES (?);
-    """, [(i,) for i in range(1, 10001)])
+    """, [(i,) for i in range(1, 1001)])
     conn.commit()
 
     conn.close()
 
-    # Opcional: eliminar comprobantes si lo deseas (mantengo comentado como en reiniciar)
-    # folder_path = 'static/comprobantes/'
-    # for filename in os.listdir(folder_path):
-    #     file_path = os.path.join(folder_path, filename)
-    #     if os.path.isfile(file_path):
-    #         os.remove(file_path)
+    # Eliminar comprobantes
+    folder_path = 'static/comprobantes2/'
+    if os.path.exists(folder_path):
+        for filename in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
 
     # Redirigir al panel de administración de rifa2
     return redirect(url_for('admin_dashboard_partida2'))
