@@ -1,3 +1,10 @@
 __pycache__/
 *.pyc
 venv/
+
+# Carpeta static en la raíz
+/static/
+
+# Bases de datos locales
+*.db
+*.sqlite
