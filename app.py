@@ -49,11 +49,23 @@ def login_required(f):
     return decorated_function
 
 app = Flask(__name__)
-UPLOAD_FOLDER = 'static/comprobantes'
+
+# Carpeta persistente: sobrevive a reinicios y redeploys (Azure App Service /tmp NO persiste)
+DATA_DIR = os.environ.get("DATA_DIR", "/home/data")
+COMPROBANTES_DIR = os.path.join(DATA_DIR, "comprobantes")
+COMPROBANTES2_DIR = os.path.join(DATA_DIR, "comprobantes2")
+
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(COMPROBANTES_DIR, exist_ok=True)
+os.makedirs(COMPROBANTES2_DIR, exist_ok=True)
+
+def db_path(nombre):
+    return os.path.join(DATA_DIR, nombre)
+
+UPLOAD_FOLDER = COMPROBANTES_DIR
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SECRET_KEY'] = 'supersecretkey'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -119,7 +131,8 @@ def _parse_tickets_input(tickets_text):
 
 
 def _db_path_for_rifa(rifa):
-    return 'rifa.db' if str(rifa) == '1' else 'rifa2.db'
+    nombre = 'rifa.db' if str(rifa) == '1' else 'rifa2.db'
+    return db_path(nombre)
 
 
 def _tickets_faltantes(rifa, tickets):
@@ -373,7 +386,7 @@ def registrar():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             # Compress and save as JPEG
             success = compress_and_save(nmr_r, filepath, max_width=1200, quality=70)
-            referencia_ruta = os.path.join('/static/comprobantes', filename).replace("\\", "/") if success else None
+            referencia_ruta = f"/comprobantes/{filename}" if success else None
             fecha = get_enunciado()
 
         # Recuperar los datos de la compra (los valores pasados en los campos ocultos)
@@ -423,9 +436,9 @@ def registrar2():
             sufijo = generar_sufijo_aleatorio()
             filename = f"{nombre_archivo}_{sufijo}.jpg"
             os.makedirs('static/comprobantes2', exist_ok=True)
-            filepath = os.path.join('static/comprobantes2', filename)
+            filepath = os.path.join(COMPROBANTES2_DIR, filename)
             success = compress_and_save(nmr_r, filepath, max_width=1200, quality=70)
-            referencia_ruta = os.path.join('/static/comprobantes2', filename).replace("\\", "/") if success else None
+            referencia_ruta = f"/comprobantes2/{filename}" if success else None
             fecha = get_enunciado2()
 
         # Recuperar los datos de la compra (los valores pasados en los campos ocultos)
@@ -458,7 +471,7 @@ def registrar2():
 @login_required  # Ruta protegida por login
 def reiniciar():
 
-    conn = sqlite3.connect('rifa.db')
+    conn = sqlite3.connect(db_path('rifa.db'))
     cursor = conn.cursor()
 
     cursor.execute("""DELETE FROM tickets_disponibles WHERE 1 = 1""")
@@ -475,7 +488,7 @@ def reiniciar():
     conn.close()
 
         # Eliminar todos los archivos en /static/comprobantes/
-    # folder_path = 'static/comprobantes/'
+    # folder_path = COMPROBANTES_DIR
     # for filename in os.listdir(folder_path):
     #     file_path = os.path.join(folder_path, filename)
     #     if os.path.isfile(file_path):  # Verificar si es un archivo
@@ -487,7 +500,7 @@ def reiniciar():
 @app.route("/2/admin/dashboard/partida/reiniciar" , methods = ["POST"])
 @login_required  # Ruta protegida por login
 def reiniciar2():
-    conn = sqlite3.connect('rifa2.db')
+    conn = sqlite3.connect(db_path('rifa2.db'))
     cursor = conn.cursor()
 
     cursor.execute("""DELETE FROM tickets_disponibles WHERE 1 = 1""")
@@ -504,7 +517,7 @@ def reiniciar2():
     conn.close()
 
     # Eliminar comprobantes
-    folder_path = 'static/comprobantes2/'
+    folder_path = COMPROBANTES2_DIR
     if os.path.exists(folder_path):
         for filename in os.listdir(folder_path):
             file_path = os.path.join(folder_path, filename)
@@ -622,7 +635,7 @@ def admin_dashboard_partida():
 
     if request.method == "POST":
         scnd_price = request.form.get("scnd_price")
-        with sqlite3.connect("rifa.db") as conn:
+        with sqlite3.connect(db_path("rifa.db")) as conn:
             cursor = conn.cursor()
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS scnd_price
@@ -681,7 +694,7 @@ def admin_dashboard_partida2():
     if request.method == 'POST':
         scnd_price = request.form.get('scnd_price')
         # Persistir scnd_price en rifa2.db
-        with sqlite3.connect("rifa2.db") as conn:
+        with sqlite3.connect(db_path("rifa2.db")) as conn:
             cursor = conn.cursor()
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS scnd_price
@@ -827,7 +840,7 @@ def invalidate():
     solicitud_id = data.get("id")
 
     # Conectar a la base de datos
-    conn = sqlite3.connect('rifa.db')
+    conn = sqlite3.connect(db_path('rifa.db'))
     cursor = conn.cursor()
 
     try:
@@ -871,7 +884,7 @@ def invalidate2():
     solicitud_id = data.get("id")
 
     # Conectar a la base de datos rifa2
-    conn = sqlite3.connect('rifa2.db')
+    conn = sqlite3.connect(db_path('rifa2.db'))
     cursor = conn.cursor()
 
     try:
@@ -921,7 +934,7 @@ def message():
     solicitud_id = data.get("id")
 
     # Conectar a la base de datos
-    conn = sqlite3.connect('rifa.db')
+    conn = sqlite3.connect(db_path('rifa.db'))
     cursor = conn.cursor()
 
     # Verificar si la solicitud existe
@@ -954,7 +967,7 @@ def message2():
     solicitud_id = data.get("id")
 
     # Conectar a la base de datos rifa2
-    conn = sqlite3.connect('rifa2.db')
+    conn = sqlite3.connect(db_path('rifa2.db'))
     cursor = conn.cursor()
 
     cursor.execute("""UPDATE requeridos SET estatus = "enviado" WHERE id = ?""", (solicitud_id,))
@@ -978,7 +991,7 @@ import re
 @app.route("/admin/dashboard/vendidos")
 @login_required  # Ruta protegida por login
 def mostrar_cartones():
-    with sqlite3.connect("rifa.db") as conn:
+    with sqlite3.connect(db_path('rifa.db')) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT tickets_vendidos FROM requeridos;")
         cartones_tuplas = cursor.fetchall()
@@ -1030,7 +1043,7 @@ def mostrar_cartones():
 @app.route("/2/admin/dashboard/vendidos")
 @login_required
 def mostrar_cartones2():
-    with sqlite3.connect("rifa2.db") as conn:
+    with sqlite3.connect(db_path('rifa2.db')) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT tickets_vendidos FROM requeridos;")
         cartones_tuplas = cursor.fetchall()
