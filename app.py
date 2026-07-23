@@ -68,7 +68,19 @@ app.config['SECRET_KEY'] = 'supersecretkey'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# Symlink para que /static/comprobantes siga funcionando, apuntando a la carpeta persistente
+def _asegurar_symlink(origen_persistente, nombre_en_static):
+    destino = os.path.join(app.static_folder, nombre_en_static)
+    if os.path.islink(destino) or os.path.exists(destino):
+        if os.path.islink(destino) and os.readlink(destino) != origen_persistente:
+            os.remove(destino)
+        elif not os.path.islink(destino):
+            return  # ya existe como carpeta real, no tocar
+    if not os.path.exists(destino):
+        os.symlink(origen_persistente, destino)
 
+_asegurar_symlink(COMPROBANTES_DIR, 'comprobantes')
+_asegurar_symlink(COMPROBANTES2_DIR, 'comprobantes2')
 
 def compress_and_save(file_storage, dest_path, max_width=1200, quality=70):
     """
