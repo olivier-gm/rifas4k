@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
+from flask import Flask, send_from_directory, render_template, request, jsonify, session, redirect, url_for, flash
 from flask_socketio import SocketIO, emit
 from crud import (
     get_data0, get_data02, obtener_datos_historial,
@@ -344,6 +344,15 @@ def index():
         mostrar_rifa2=bool(flags['mostrar_rifa2']),
         mostrar_rifa3=bool(flags['mostrar_rifa3'])
     )
+
+
+@app.route('/comprobantes/<path:filename>')
+def ver_comprobante(filename):
+    return send_from_directory(COMPROBANTES_DIR, filename)
+
+@app.route('/comprobantes2/<path:filename>')
+def ver_comprobante2(filename):
+    return send_from_directory(COMPROBANTES2_DIR, filename)
 @app.route("/compra", methods=["POST", "GET"])
 def pago():
     estatus = get_estatus()
