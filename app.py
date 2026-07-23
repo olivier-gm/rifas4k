@@ -435,7 +435,6 @@ def registrar2():
             nombre_archivo, extension = os.path.splitext(filename)
             sufijo = generar_sufijo_aleatorio()
             filename = f"{nombre_archivo}_{sufijo}.jpg"
-            os.makedirs('static/comprobantes2', exist_ok=True)
             filepath = os.path.join(COMPROBANTES2_DIR, filename)
             success = compress_and_save(nmr_r, filepath, max_width=1200, quality=70)
             referencia_ruta = f"/comprobantes2/{filename}" if success else None
