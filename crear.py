@@ -1,7 +1,10 @@
 import sqlite3
+import os
 
-# Crear conexión a la base de datos SQLite3
-conn = sqlite3.connect("rifa2.db")
+DATA_DIR = os.environ.get("DATA_DIR", "/home/data")
+os.makedirs(DATA_DIR, exist_ok=True)
+
+conn = sqlite3.connect(os.path.join(DATA_DIR, "rifa2.db"))
 cursor = conn.cursor()
 
 # Tabla "venta" (solo permite una fila)
