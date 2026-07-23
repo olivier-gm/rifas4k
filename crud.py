@@ -3,8 +3,13 @@ import json
 import time
 from flask import request
 
-DB_NAME = "rifa.db"
-DB_NAME2 = "rifa2.db"
+import os
+
+DATA_DIR = os.environ.get("DATA_DIR", "/home/data")
+os.makedirs(DATA_DIR, exist_ok=True)
+
+DB_NAME = os.path.join(DATA_DIR, "rifa.db")
+DB_NAME2 = os.path.join(DATA_DIR, "rifa2.db")
 
 def execute_query(query, params=(), fetch=False, fetchone=False, db=DB_NAME):
     conn = sqlite3.connect(db)
@@ -608,7 +613,7 @@ def vendidos2(cartones):
 
 # --------- flags persistence ----------
 def obtener_datos_historial():
-    conn = sqlite3.connect('config.db')
+    conn = sqlite3.connect(os.path.join(DATA_DIR, 'config.db'))
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS feature_flags (
