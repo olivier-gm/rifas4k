@@ -731,7 +731,7 @@ def admin_dashboard_partida2():
         zelle = request.form.get('zelle')
 
         # Asegurar que exista la fila en venta; si no, crearla
-        with sqlite3.connect('rifa2.db') as conn:
+        with sqlite3.connect(db_path("rifa2.db")) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='venta';")
             if cursor.fetchone()[0] == 0:
