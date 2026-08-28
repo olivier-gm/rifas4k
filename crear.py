@@ -1,10 +1,10 @@
 import sqlite3
 import os
 
-DATA_DIR = os.environ.get("DATA_DIR", "/home/data")
-os.makedirs(DATA_DIR, exist_ok=True)
+# Crear la DB en la raíz del proyecto (mismo directorio que este script)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-conn = sqlite3.connect(os.path.join(DATA_DIR, "rifa2.db"))
+conn = sqlite3.connect(os.path.join(BASE_DIR, "rifa2.db"))
 cursor = conn.cursor()
 
 # Tabla "venta" (solo permite una fila)

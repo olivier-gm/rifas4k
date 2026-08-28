@@ -54,10 +54,12 @@ app = Flask(__name__)
 DATA_DIR = os.environ.get("DATA_DIR", "/home/data")
 COMPROBANTES_DIR = os.path.join(DATA_DIR, "comprobantes")
 COMPROBANTES2_DIR = os.path.join(DATA_DIR, "comprobantes2")
+IMAGENES_DIR = os.path.join(DATA_DIR, "img")  # imágenes dinámicas de partida
 
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(COMPROBANTES_DIR, exist_ok=True)
 os.makedirs(COMPROBANTES2_DIR, exist_ok=True)
+os.makedirs(IMAGENES_DIR, exist_ok=True)
 
 def db_path(nombre):
     return os.path.join(DATA_DIR, nombre)
@@ -81,40 +83,9 @@ def _asegurar_symlink(origen_persistente, nombre_en_static):
 
 _asegurar_symlink(COMPROBANTES_DIR, 'comprobantes')
 _asegurar_symlink(COMPROBANTES2_DIR, 'comprobantes2')
+_asegurar_symlink(IMAGENES_DIR, 'img')
 
 # ---- Migración única: expandir rifa2.db de 1 000 a 10 000 tickets ----
-def _migrar_rifa2_a_10k():
-    """Si rifa2.db tiene menos de 10 000 tickets totales, la resetea a 10 000."""
-    rifa2_path = db_path('rifa2.db')
-    if not os.path.exists(rifa2_path):
-        return  # La DB aún no existe; crear.py se encargará
-    try:
-        conn = sqlite3.connect(rifa2_path)
-        cursor = conn.cursor()
-        # Contar tickets disponibles + usados = pool total
-        cursor.execute("SELECT COUNT(*) FROM tickets_disponibles")
-        disponibles = cursor.fetchone()[0]
-        cursor.execute("SELECT COUNT(*) FROM tickets_usados")
-        usados = cursor.fetchone()[0]
-        total = disponibles + usados
-        if total >= 10000:
-            conn.close()
-            return  # Ya está en 10 000, no hacer nada
-        # Resetear: borrar tickets y compradores, insertar 1-10 000
-        cursor.execute("DELETE FROM tickets_disponibles")
-        cursor.execute("DELETE FROM tickets_usados")
-        cursor.execute("DELETE FROM requeridos")
-        cursor.executemany(
-            "INSERT OR IGNORE INTO tickets_disponibles (carton_disponible) VALUES (?);",
-            [(i,) for i in range(1, 10001)]
-        )
-        conn.commit()
-        conn.close()
-        print("[MIGRACIÓN] rifa2.db expandida a 10 000 tickets.")
-    except Exception as e:
-        print(f"[MIGRACIÓN] Error al migrar rifa2.db: {e}")
-
-_migrar_rifa2_a_10k()
 
 def compress_and_save(file_storage, dest_path, max_width=1200, quality=70):
     """
@@ -387,6 +358,10 @@ def ver_comprobante(filename):
 @app.route('/comprobantes2/<path:filename>')
 def ver_comprobante2(filename):
     return send_from_directory(COMPROBANTES2_DIR, filename)
+
+@app.route('/img/<path:filename>')
+def ver_imagen_dinamica(filename):
+    return send_from_directory(IMAGENES_DIR, filename)
 @app.route("/compra", methods=["POST", "GET"])
 def pago():
     estatus = get_estatus()
@@ -702,15 +677,12 @@ def admin_dashboard_partida():
             cursor.execute('''UPDATE scnd_price SET precio = ?''', (scnd_price,))
             conn.commit()
 
-        UPLOAD_FOLDER_PARTIDA = "static/img"
-
         if "imagen" in request.files:
             file = request.files["imagen"]
             if file and allowed_file(file.filename):
                 print("Archivo recibido correctamente.")  # Verifica si entra aquí
-                os.makedirs(UPLOAD_FOLDER_PARTIDA, exist_ok=True)
                 filename = secure_filename("partida.jpg")
-                filepath = os.path.join(UPLOAD_FOLDER_PARTIDA, filename)
+                filepath = os.path.join(IMAGENES_DIR, filename)
                 file.save(filepath)
                 print(f"Imagen guardada en: {filepath}")  # Verifica la ruta guardada
             else:
@@ -761,15 +733,12 @@ def admin_dashboard_partida2():
             cursor.execute('''UPDATE scnd_price SET precio = ?''', (scnd_price,))
             conn.commit()
 
-        UPLOAD_FOLDER_PARTIDA = "static/img"
-
         if "imagen" in request.files:
             file = request.files["imagen"]
             if file and allowed_file(file.filename):
-                os.makedirs(UPLOAD_FOLDER_PARTIDA, exist_ok=True)
                 # guardar con nombre distinto para rifa2
                 filename = secure_filename("partida2.jpg")
-                filepath = os.path.join(UPLOAD_FOLDER_PARTIDA, filename)
+                filepath = os.path.join(IMAGENES_DIR, filename)
                 file.save(filepath)
             else:
                 # archivo no permitido o no enviado - continuar sin fallo
