@@ -82,6 +82,40 @@ def _asegurar_symlink(origen_persistente, nombre_en_static):
 _asegurar_symlink(COMPROBANTES_DIR, 'comprobantes')
 _asegurar_symlink(COMPROBANTES2_DIR, 'comprobantes2')
 
+# ---- Migración única: expandir rifa2.db de 1 000 a 10 000 tickets ----
+def _migrar_rifa2_a_10k():
+    """Si rifa2.db tiene menos de 10 000 tickets totales, la resetea a 10 000."""
+    rifa2_path = db_path('rifa2.db')
+    if not os.path.exists(rifa2_path):
+        return  # La DB aún no existe; crear.py se encargará
+    try:
+        conn = sqlite3.connect(rifa2_path)
+        cursor = conn.cursor()
+        # Contar tickets disponibles + usados = pool total
+        cursor.execute("SELECT COUNT(*) FROM tickets_disponibles")
+        disponibles = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM tickets_usados")
+        usados = cursor.fetchone()[0]
+        total = disponibles + usados
+        if total >= 10000:
+            conn.close()
+            return  # Ya está en 10 000, no hacer nada
+        # Resetear: borrar tickets y compradores, insertar 1-10 000
+        cursor.execute("DELETE FROM tickets_disponibles")
+        cursor.execute("DELETE FROM tickets_usados")
+        cursor.execute("DELETE FROM requeridos")
+        cursor.executemany(
+            "INSERT OR IGNORE INTO tickets_disponibles (carton_disponible) VALUES (?);",
+            [(i,) for i in range(1, 10001)]
+        )
+        conn.commit()
+        conn.close()
+        print("[MIGRACIÓN] rifa2.db expandida a 10 000 tickets.")
+    except Exception as e:
+        print(f"[MIGRACIÓN] Error al migrar rifa2.db: {e}")
+
+_migrar_rifa2_a_10k()
+
 def compress_and_save(file_storage, dest_path, max_width=1200, quality=70):
     """
     Read a Werkzeug FileStorage, compress/resize using Pillow if available,
@@ -531,7 +565,7 @@ def reiniciar2():
 
     cursor.executemany("""
     INSERT OR IGNORE INTO tickets_disponibles (carton_disponible) VALUES (?);
-    """, [(i,) for i in range(1, 1001)])
+    """, [(i,) for i in range(1, 10001)])
     conn.commit()
 
     conn.close()

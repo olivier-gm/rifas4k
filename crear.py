@@ -27,10 +27,10 @@ CREATE TABLE IF NOT EXISTS tickets_disponibles (
     carton_disponible INTEGER PRIMARY KEY
 );""")
 
-# Insertar los cartones disponibles (1 al 1000)
+# Insertar los cartones disponibles (1 al 10000)
 cursor.executemany("""
 INSERT OR IGNORE INTO tickets_disponibles (carton_disponible) VALUES (?);
-""", [(i,) for i in range(1, 1001)])
+""", [(i,) for i in range(1, 10001)])
 
 # Tabla "tickets_usados"
 cursor.execute("""
