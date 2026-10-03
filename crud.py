@@ -323,6 +323,14 @@ def get_porcentaje(flag):
     total = 10000
     return round((cantidad / total) * 100, 2)
 
+def get_resumen_disponibilidad():
+    """Lee una sola vez el total disponible y devuelve (porcentaje, cantidad)."""
+    with sqlite3.connect(DB_NAME) as conn:
+        cantidad = conn.execute(
+            "SELECT COUNT(carton_disponible) FROM tickets_disponibles"
+        ).fetchone()[0]
+    return round((cantidad / 10000) * 100, 2), cantidad
+
 def get_precio():
     data = execute_query("SELECT precio_de_ticket FROM venta LIMIT 1", fetch=True, fetchone=True)
     return data[0] if data else None
@@ -475,6 +483,14 @@ def get_porcentaje2(flag):
         return cantidad
     total = 10000
     return round((cantidad / total) * 100, 2)
+
+def get_resumen_disponibilidad2():
+    """Lee una sola vez el total disponible de la segunda rifa."""
+    with sqlite3.connect(DB_NAME2) as conn:
+        cantidad = conn.execute(
+            "SELECT COUNT(carton_disponible) FROM tickets_disponibles"
+        ).fetchone()[0]
+    return round((cantidad / 10000) * 100, 2), cantidad
 
 def get_precio2():
     conn = sqlite3.connect(DB_NAME2)

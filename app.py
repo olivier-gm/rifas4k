@@ -10,7 +10,8 @@ from crud import (
     actualizar_partida, obtener_datos_partida, get_enunciado, get_premio,
     insertar_comprador, insertar_comprador2, get_estatus, get_estatus2,
     get_precio, get_precio2, vendidos, vendidos2, get_minima, get_minima2,
-    get_dolar, get_dolar2, get_zelle, get_zelle2
+    get_dolar, get_dolar2, get_zelle, get_zelle2,
+    get_resumen_disponibilidad, get_resumen_disponibilidad2
 )
 import os
 from werkzeug.utils import secure_filename
@@ -340,12 +341,14 @@ def run_dev_cli():
 @app.route('/', methods=["GET"])
 def index():
     flags = obtener_datos_historial()  # solo lee en GET
+    porcentaje, disponibilidad = get_resumen_disponibilidad()
+    porcentaje2, disponibilidad2 = get_resumen_disponibilidad2()
     return render_template(
         'index.html', solicitudes = get_data2(), solicitudes2  = get_data02(),
         enunciado=get_enunciado(), enunciado2=get_enunciado2(),
         premio=get_premio(), premio2=get_premio2(),
-        porcentaje=get_porcentaje(True), porcentaje2=get_porcentaje2(True),
-        disponibilidad=get_porcentaje(False), disponibilidad2=get_porcentaje2(False),
+        porcentaje=porcentaje, porcentaje2=porcentaje2,
+        disponibilidad=disponibilidad, disponibilidad2=disponibilidad2,
         mostrar_rifa2=bool(flags['mostrar_rifa2']),
         mostrar_rifa3=bool(flags['mostrar_rifa3'])
     )
@@ -368,9 +371,10 @@ def pago():
     if estatus == "Venta finalizada":
         return redirect(url_for('index'))  # redirigir a un panel de administración
     # Si no es POST, solo se muestran los datos vacíos
+    porcentaje, disponibilidad = get_resumen_disponibilidad()
     return render_template("comprar.html", cant_min=get_minima(),
                             precio=int(get_precio()),
-                            zelle=get_zelle(), precio_dolares=get_dolar(), porcentaje=get_porcentaje(True), disponibilidad = get_porcentaje(False))
+                            zelle=get_zelle(), precio_dolares=get_dolar(), porcentaje=porcentaje, disponibilidad=disponibilidad)
 
 
 @app.route("/2/compra", methods=["POST", "GET"])
@@ -381,9 +385,10 @@ def pago2():
     estatus = get_estatus2()
     if estatus == "Venta finalizada":
         return redirect(url_for('index'))
+    porcentaje, disponibilidad = get_resumen_disponibilidad2()
     return render_template("comprar2.html", cant_min=get_minima2(),
                             precio=int(get_precio2()) if get_precio2() is not None else 0,
-                            zelle=get_zelle2(), precio_dolares=get_dolar2(), porcentaje=get_porcentaje2(True), disponibilidad = get_porcentaje2(False))
+                            zelle=get_zelle2(), precio_dolares=get_dolar2(), porcentaje=porcentaje, disponibilidad=disponibilidad)
 
 @app.route("/verify", methods=["POST", "GET"])
 def verificar():
