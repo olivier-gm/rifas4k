@@ -74,6 +74,18 @@ jobs:
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
+        continue-on-error: true
+        with:
+          app-name: 'rifas4k'
+          slot-name: 'Production'
+
+      - name: Wait before retrying deployment
+        if: steps.deploy-to-webapp.outcome == 'failure'
+        run: sleep 120
+
+      - name: 'Retry deploy to Azure Web App'
+        if: steps.deploy-to-webapp.outcome == 'failure'
+        uses: azure/webapps-deploy@v3
         with:
           app-name: 'rifas4k'
           slot-name: 'Production'
